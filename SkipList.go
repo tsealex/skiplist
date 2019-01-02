@@ -24,10 +24,8 @@ func (e *Element) insertPrev(i int, down *Element) *Element {
 }
 
 type SkipList struct {
-	root Element
+	root *Element
 	len  int
-
-	levelLen []int
 }
 
 func (sl *SkipList) Contains(i int) bool {
@@ -40,7 +38,7 @@ func (sl *SkipList) search(i int) []*Element {
 	if sl.len == 0 {
 		return nil
 	} else {
-		node := &sl.root
+		node := sl.root
 		for node != nil {
 			for node.value < i && node.next != nil {
 				node = node.next
@@ -55,11 +53,14 @@ func (sl *SkipList) search(i int) []*Element {
 	return visited
 }
 
+func (sl *SkipList) Insert(i int) {
+	sl.insert(i)
+}
+
 func (sl *SkipList) insert(i int) {
 	visited := sl.search(i)
 	if visited == nil {
 		sl.root.value = i
-		sl.levelLen = append(sl.levelLen, 1)
 	} else {
 		var down *Element
 		for j := len(visited) - 1; j >= 0; j-- {
@@ -68,18 +69,45 @@ func (sl *SkipList) insert(i int) {
 			} else {
 				down = visited[j].insertNext(i, down)
 			}
-			sl.levelLen[j] += 1
-			// If the next level has space, than continue this loop with 1/2 probability.
-			if j > 0 && sl.levelLen[j-1] < sl.levelLen[j] / 2 {
-				if flip() {
-					break
-				}
-			} else if j == 0 && sl.levelLen[j] > 1 {
-				sl.levelLen = append([]int{1}, sl.levelLen...)
-				sl.root = Element{down: down, value: i}
+			// Continue this loop with 1/2 probability.
+			if j > 0 && flip() {
 				break
+			} else if j == 0 {
+				sl.root = &Element{down: down, value: i}
 			}
 		}
 	}
 	sl.len += 1
+}
+
+func (sl *SkipList) Delete(i int) {
+	sl.delete(i)
+}
+
+func (sl *SkipList) delete(i int) {
+	visited := sl.search(i)
+	if visited != nil {
+		for j := len(visited) - 1; j >= 0; j-- {
+			if visited[j].value != i {
+				break
+			}
+			if visited[j].prev != nil {
+				visited[j].prev.next = visited[j].next
+			}
+			if visited[j].next != nil {
+				visited[j].next.prev = visited[j].prev
+			}
+		}
+		// If the root node also has this value, replace it with the neighbor of its direct child.
+		if visited[0].value == i && visited[0].next == visited[0].prev {
+			if down := visited[0].down; down != nil {
+				if down.prev != nil {
+					sl.root = down.prev
+				} else {
+					sl.root = down.next
+				}
+			}
+		}
+		sl.len -= 1
+	}
 }
