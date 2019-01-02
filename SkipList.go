@@ -60,7 +60,7 @@ func (sl *SkipList) Insert(i int) {
 func (sl *SkipList) insert(i int) {
 	visited := sl.search(i)
 	if visited == nil {
-		sl.root.value = i
+		sl.root = &Element{value: i}
 	} else {
 		var down *Element
 		for j := len(visited) - 1; j >= 0; j-- {
@@ -99,7 +99,7 @@ func (sl *SkipList) delete(i int) {
 			}
 		}
 		// If the root node also has this value, replace it with the neighbor of its direct child.
-		if visited[0].value == i && visited[0].next == visited[0].prev {
+		if visited[0] == sl.root {
 			if down := visited[0].down; down != nil {
 				if down.prev != nil {
 					sl.root = down.prev
